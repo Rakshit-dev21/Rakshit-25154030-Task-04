@@ -1,4 +1,5 @@
 import pygame
+import random
 from sys import exit
 pygame.init()
 screen = pygame.display.set_mode((800 , 600))
@@ -28,6 +29,19 @@ class Wall(Defender):
     def __init__(self, row, col):
         super().__init__(row, col, 400, 50, (130 , 80 , 30))
 
+class Zombie:
+    def __init__(self , row):
+        self.row = row
+        self.health = 100
+        self.speed = 0.3
+        self.x = 800
+        self.rect = pygame.Rect((800 , grid_start_y + row * cell_size + 10) , (40 , 60))
+    def update(self):
+        self.x -= self.speed
+        self.rect.x = self.x
+    def draw(self , surface):
+        pygame.draw.rect(surface , (200 , 40 , 40) , self.rect)
+
 defenders = []
 energy = 150
 selected = None
@@ -37,6 +51,9 @@ shooter_btn = pygame.Rect((40 , 20) , (100 , 60))
 producer_btn = pygame.Rect((150 , 20) , (100 , 60))
 wall_btn = pygame.Rect((260 , 20) , (100 , 60))
 buttons = [(shooter_btn , 'shooter' , (0 , 0 , 200) , 100) , (producer_btn , 'producer' , (230 , 200 , 0) , 50) , (wall_btn , 'wall' , (130 , 80 , 30) , 50)]
+zombies = []
+spawn_timer = 0
+spawn_interval = 400
 running = True
 while running:
     for event in pygame.event.get():
@@ -76,7 +93,12 @@ while running:
                                     defenders.append(new_defender)
                                     energy -= new_defender.cost
 
-
+    spawn_timer += 1
+    if spawn_timer >= spawn_interval :
+        spawn_timer = 0
+        zombies.append(Zombie(random.randint(0 , row - 1)))
+    for zombie in zombies:
+        zombie.update()
     screen.fill((30 , 30 ,30))
     for i in range(row):
         for j in range(col):
@@ -92,6 +114,9 @@ while running:
 
     for defender in defenders:
         defender.draw(screen)
+
+    for zombie in zombies:
+        zombie.draw(screen)
 
     for button in buttons:
         pygame.draw.rect(screen , button[2] , button[0])
