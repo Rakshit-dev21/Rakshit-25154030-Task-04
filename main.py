@@ -36,6 +36,14 @@ class Shooter(Defender):
 class Producer(Defender):
     def __init__(self, row, col):
         super().__init__(row, col,80 , 50 ,(230 , 200 , 0) ) 
+        self.produce_timer = 0
+    def produce(self):
+        self.produce_timer += 1
+        if self.produce_timer >= 480:
+            self.produce_timer = 0
+            return 25
+        else:return 0
+
 class Wall(Defender):
     def __init__(self, row, col):
         super().__init__(row, col, 400, 50, (130 , 80 , 30))
@@ -47,6 +55,8 @@ class Zombie:
         self.speed = 0.3
         self.x = 800
         self.rect = pygame.Rect((800 , grid_start_y + row * cell_size + 10) , (40 , 60))
+        self.state = 'walking'
+        self.eat_timer = 0
     def update(self):
         self.x -= self.speed
         self.rect.x = self.x
@@ -78,65 +88,86 @@ buttons = [(shooter_btn , 'shooter' , (0 , 0 , 200) , 100) , (producer_btn , 'pr
 zombies = []
 spawn_timer = 0
 spawn_interval = 400
+state = 'playing'
+zombie_spawned = 0
+total_zombie = 15
 running = True
 while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            exit()
-        elif event.type == pygame.MOUSEBUTTONDOWN:
-            clicked_btn = False
-            if event.button == 1:
-                for button in buttons:
-                    if button[0].collidepoint(event.pos):
-                        selected = button[1]
-                        clicked_btn = True
-                if not clicked_btn:
-                    mouse_x , mouse_y = event.pos
-                    print(mouse_x , mouse_y)
-                    c = (mouse_x - grid_start_x) // cell_size
-                    r = (mouse_y - grid_start_y) // cell_size
-                    print(r , c)
-                    if(0 <= r < row and 0 <= c < col):
-                        if selected is not None:
-                            occupied = False
-                            for d in defenders:
-                                if d.row == r and d.col == c:
-                                    occupied = True
-                                    break
-                            if not occupied:
-                                new_defender = None
-                                if selected == 'shooter':
-                                    new_defender = Shooter(r , c)
-                                elif selected == 'producer':
-                                    new_defender = Producer(r , c)
-                                elif selected == 'wall':
-                                    new_defender = Wall(r , c)
+    if state == 'playing':
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                clicked_btn = False
+                if event.button == 1:
+                    for button in buttons:
+                        if button[0].collidepoint(event.pos):
+                            selected = button[1]
+                            clicked_btn = True
+                    if not clicked_btn:
+                        mouse_x , mouse_y = event.pos
+                        print(mouse_x , mouse_y)
+                        c = (mouse_x - grid_start_x) // cell_size
+                        r = (mouse_y - grid_start_y) // cell_size
+                        print(r , c)
+                        if(0 <= r < row and 0 <= c < col):
+                            if selected is not None:
+                                occupied = False
+                                for d in defenders:
+                                    if d.row == r and d.col == c:
+                                        occupied = True
+                                        break
+                                if not occupied:
+                                    new_defender = None
+                                    if selected == 'shooter':
+                                        new_defender = Shooter(r , c)
+                                    elif selected == 'producer':
+                                        new_defender = Producer(r , c)
+                                    elif selected == 'wall':
+                                        new_defender = Wall(r , c)
 
-                                if new_defender is not None and energy >= new_defender.cost:
-                                    defenders.append(new_defender)
-                                    energy -= new_defender.cost
+                                    if new_defender is not None and energy >= new_defender.cost:
+                                        defenders.append(new_defender)
+                                        energy -= new_defender.cost
 
-    spawn_timer += 1
-    if spawn_timer >= spawn_interval :
-        spawn_timer = 0
-        zombies.append(Zombie(random.randint(0 , row - 1)))
-    for zombie in zombies:
-        zombie.update()
-    for d in defenders:
-        if isinstance(d , Shooter):
-            d.shoot(zombies , bullets)
+        spawn_timer += 1
+        if spawn_timer >= spawn_interval :
+            spawn_timer = 0
+            zombies.append(Zombie(random.randint(0 , row - 1)))
+        for zombie in zombies:
+            target = None
+            for d in defenders:
+                if d.row == zombie.row and zombie.rect.colliderect(d.rect):
+                    target = d
+            if target != None:
+                zombie.state = 'eating'
+                zombie.eat_timer += 1
+                if zombie.eat_timer >= 30:
+                    target.health -= 10
+                    zombie.eat_timer = 0
+            else:
+                    zombie.state = 'walking'
+                    zombie.update()   
 
-    for bullet in bullets:
-        bullet.update()
-    for b in bullets[:]:
-        for z in zombies:
-            if b.row == z.row and b.rect.colliderect(z.rect):
-                z.health = z.health - b.damage
-                bullets.remove(b)
-                break
-    bullets = [b for b in bullets if b.rect.x < 800]
-    zombies = [z for z in zombies if z.health > 0]
+        for d in defenders:
+            if isinstance(d , Shooter):
+                d.shoot(zombies , bullets)
+            if isinstance(d , Producer):
+                energy += d.produce()
+        
+
+        for bullet in bullets:
+            bullet.update()
+        for b in bullets[:]:
+            for z in zombies:
+                if b.row == z.row and b.rect.colliderect(z.rect):
+                    z.health = z.health - b.damage
+                    bullets.remove(b)
+                    break
+        bullets = [b for b in bullets if b.rect.x < 800]
+        zombies = [z for z in zombies if z.health > 0]
+        defenders = [d for d in defenders if d.health > 0 ]
     screen.fill((30 , 30 ,30))
     for i in range(row):
         for j in range(col):
