@@ -22,6 +22,17 @@ class Defender:
 class Shooter(Defender):
     def __init__(self, row, col):
         super().__init__(row, col, 100 , 100, (0 ,0 ,200))
+        self.shooter_timer = 0
+    def shoot(self , zombies , bullets):
+        self.shooter_timer += 1
+        target = False
+        for zombie in zombies:
+            if zombie.row == self.row and zombie.rect.x >= self.rect.x and zombie.rect.x < 800:
+                target = True
+        if self.shooter_timer >= 90 and target == True:
+            self.shooter_timer = 0
+            bullets.append(Bullet(self.rect.right , self.rect.centery - 4 , self.row))
+
 class Producer(Defender):
     def __init__(self, row, col):
         super().__init__(row, col,80 , 50 ,(230 , 200 , 0) ) 
@@ -41,8 +52,21 @@ class Zombie:
         self.rect.x = self.x
     def draw(self , surface):
         pygame.draw.rect(surface , (200 , 40 , 40) , self.rect)
-
+class Bullet:
+    def __init__(self , x , y , row):
+        self.row = row 
+        self.x = x
+        self.y = y
+        self.speed = 5
+        self.damage = 20
+        self.rect = pygame.Rect((self.x , self.y) , (15 , 8))
+    def update(self):
+        self.x += self.speed
+        self.rect.x = self.x 
+    def draw(self , surface):
+        pygame.draw.rect(surface , (244 , 196 , 48) , self.rect)
 defenders = []
+bullets = []
 energy = 150
 selected = None
 font = pygame.font.Font(None , 30)
@@ -99,6 +123,20 @@ while running:
         zombies.append(Zombie(random.randint(0 , row - 1)))
     for zombie in zombies:
         zombie.update()
+    for d in defenders:
+        if isinstance(d , Shooter):
+            d.shoot(zombies , bullets)
+
+    for bullet in bullets:
+        bullet.update()
+    for b in bullets[:]:
+        for z in zombies:
+            if b.row == z.row and b.rect.colliderect(z.rect):
+                z.health = z.health - b.damage
+                bullets.remove(b)
+                break
+    bullets = [b for b in bullets if b.rect.x < 800]
+    zombies = [z for z in zombies if z.health > 0]
     screen.fill((30 , 30 ,30))
     for i in range(row):
         for j in range(col):
@@ -117,7 +155,8 @@ while running:
 
     for zombie in zombies:
         zombie.draw(screen)
-
+    for bullet in bullets:
+        bullet.draw(screen)
     for button in buttons:
         pygame.draw.rect(screen , button[2] , button[0])
         if selected == button[1]:
