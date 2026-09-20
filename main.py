@@ -28,16 +28,27 @@ class Wall(Defender):
     def __init__(self, row, col):
         super().__init__(row, col, 400, 50, (130 , 80 , 30))
 
-defenders = [Shooter(0 , 0) , Producer( 1 , 0) , Wall(1 , 8)]
-
-
- 
+defenders = []
+energy = 150
+selected = None
+font = pygame.font.Font(None , 30)
+small_font = pygame.font.Font(None , 22)
+shooter_btn = pygame.Rect((40 , 20) , (100 , 60))
+producer_btn = pygame.Rect((150 , 20) , (100 , 60))
+wall_btn = pygame.Rect((260 , 20) , (100 , 60))
+buttons = [(shooter_btn , 'shooter' , (0 , 0 , 200) , 100) , (producer_btn , 'producer' , (230 , 200 , 0) , 50) , (wall_btn , 'wall' , (130 , 80 , 30) , 50)]
 running = True
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             exit()
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                for button in buttons:
+                    if button[0].collidepoint(event.pos):
+                        selected = button[1]
+                        print(selected)
     screen.fill((30 , 30 ,30))
     for i in range(row):
         for j in range(col):
@@ -53,6 +64,17 @@ while running:
 
     for defender in defenders:
         defender.draw(screen)
+
+    for button in buttons:
+        pygame.draw.rect(screen , button[2] , button[0])
+        if selected == button[1]:
+            pygame.draw.rect(screen , (255 , 255 , 255) , button[0] , 4)
+        text = small_font.render(f"{button[1]} : {button[3]}" , True , (255 ,255 , 255))
+        screen.blit(text , (button[0].x + 5 , button[0].y + 20))
+        
+
+    text_surface = font.render(f" Energy : {energy}" , True , (255 , 255 , 255))
+    screen.blit(text_surface , (600 , 40))
     pygame.display.update()
     clock.tick(60)
 
