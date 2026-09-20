@@ -44,11 +44,39 @@ while running:
             pygame.quit()
             exit()
         elif event.type == pygame.MOUSEBUTTONDOWN:
+            clicked_btn = False
             if event.button == 1:
                 for button in buttons:
                     if button[0].collidepoint(event.pos):
                         selected = button[1]
-                        print(selected)
+                        clicked_btn = True
+                if not clicked_btn:
+                    mouse_x , mouse_y = event.pos
+                    print(mouse_x , mouse_y)
+                    c = (mouse_x - grid_start_x) // cell_size
+                    r = (mouse_y - grid_start_y) // cell_size
+                    print(r , c)
+                    if(0 <= r < row and 0 <= c < col):
+                        if selected is not None:
+                            occupied = False
+                            for d in defenders:
+                                if d.row == r and d.col == c:
+                                    occupied = True
+                                    break
+                            if not occupied:
+                                new_defender = None
+                                if selected == 'shooter':
+                                    new_defender = Shooter(r , c)
+                                elif selected == 'producer':
+                                    new_defender = Producer(r , c)
+                                elif selected == 'wall':
+                                    new_defender = Wall(r , c)
+
+                                if new_defender is not None and energy >= new_defender.cost:
+                                    defenders.append(new_defender)
+                                    energy -= new_defender.cost
+
+
     screen.fill((30 , 30 ,30))
     for i in range(row):
         for j in range(col):
